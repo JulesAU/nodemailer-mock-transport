@@ -2,7 +2,7 @@ var packageData = require('./package.json')
 var userValidate = require('npm-user-validate')
 
 var MockTransport = function (options) {
-  this.options = options || {}
+  this.options = options || { errorOnSend: false }
   this.sentMail = []
   this.name = 'Mock'
   this.version = packageData.version
@@ -35,13 +35,18 @@ MockTransport.prototype.send = function (mail, callback) {
     }
   } else {
     err = validate(mail.data.to)
-    if (err != null) {
+    if (err != null || (err = this.options.errorOnSend)) {
       return callback(err)
     }
   }
 
   this.sentMail.push(mail)
-  return callback()
+  return callback(null, { envelope:
+            { from: mail.data.from,
+            to: [ mail.data.to ] },
+            messageId: '<0100016145484735-9acb1318-25f7-4890-9def-8f5e6afe5545-000000@some.tld.com>',
+            response: '0100016145484735-9acb1318-25f7-4890-9def-8f5e6afe5545-000000'
+          })
 }
 
 module.exports = function (options) {

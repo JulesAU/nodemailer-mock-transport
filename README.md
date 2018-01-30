@@ -14,25 +14,34 @@ describe('mock-transport', function() {
     transport.options.foo.should.equal('bar');
   });
 
-  it('should store emails sent with nodemailer, so that they can be asserted against', function() {
+  it('should store emails sent with nodemailer, so that they can be asserted against', function (done) {
     var transport = mockTransport({
       foo: 'bar'
-    });
+    })
 
-    var transporter = nodemailer.createTransport(transport);
+    var transporter = nodemailer.createTransport(transport)
 
     transporter.sendMail({
-      from: 'sender@address',
-      to: 'receiver@address',
+      from: 'sender@address.com',
+      to: 'receiver@address.com',
       subject: 'hello',
       text: 'hello world!'
-    });
+    }, function (err, info) {
 
-    transport.sentMail.length.should.equal(1);
-    transport.sentMail[0].data.to.should.equal('receiver@address');
-    transport.sentMail[0].message.content.should.equal('hello world!');
-  });
+    /* Note that the callback includes the standard nodemail envelope and messageId props: */
 
+      if (err) throw err
+      info.messageId.should.not.be.a('null')
+      info.envelope.from.should.eql('sender@address.com')
+      done()
+    })
+
+    transport.sentMail.length.should.equal(1)
+    transport.sentMail[0].data.to.should.equal('receiver@address.com')
+    transport.sentMail[0].message.content.should.equal('hello world!')
+  })
+
+/* Here's how you can mock an arbritary failed send: */
   it('should return an error and not send an email if there is no `to` in the mail data object', function () {
     var transport = mockTransport({
       foo: 'bar'
@@ -49,4 +58,22 @@ describe('mock-transport', function() {
     transport.sentMail.length.should.equal(0);
   });
 });
+
+  it('should not send mail and throw and error if asked to do so', function () {
+    var transport = mockTransport({
+      foo: 'bar',
+      errorOnSend: { error: 'Failed to send for some reason!' }
+    })
+    var transporter = nodemailer.createTransport(transport)
+    transporter.sendMail({
+      from: 'sender@address.com',
+      to: 'receiver@address.com',
+      subject: 'hello',
+      text: 'hello world!'
+    })
+    transport.sentMail.length.should.equal(0)
+  })
+})
+
+
 ```

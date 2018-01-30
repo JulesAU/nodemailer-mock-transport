@@ -13,7 +13,7 @@ describe('mock-transport', function () {
     transport.options.foo.should.equal('bar')
   })
 
-  it('should store emails sent with nodemailer, so that they can be asserted against', function () {
+  it('should store emails sent with nodemailer, so that they can be asserted against', function (done) {
     var transport = mockTransport({
       foo: 'bar'
     })
@@ -25,6 +25,11 @@ describe('mock-transport', function () {
       to: 'receiver@address.com',
       subject: 'hello',
       text: 'hello world!'
+    }, function (err, info) {
+      if (err) throw err
+      info.messageId.should.not.be.a('null')
+      info.envelope.from.should.eql('sender@address.com')
+      done()
     })
 
     transport.sentMail.length.should.equal(1)
@@ -91,6 +96,21 @@ describe('mock-transport', function () {
     transporter.sendMail({
       from: 'sender@address.com',
       to: to,
+      subject: 'hello',
+      text: 'hello world!'
+    })
+    transport.sentMail.length.should.equal(0)
+  })
+
+  it('should not send mail and throw and error if asked to do so', function () {
+    var transport = mockTransport({
+      foo: 'bar',
+      errorOnSend: { error: 'Failed to send for some reason!' }
+    })
+    var transporter = nodemailer.createTransport(transport)
+    transporter.sendMail({
+      from: 'sender@address.com',
+      to: 'receiver@address.com',
       subject: 'hello',
       text: 'hello world!'
     })
